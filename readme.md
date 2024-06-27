@@ -1,6 +1,8 @@
 # 👨‍💻 Code companions for blogposts 
 
-This repo contains the (highly unstructured and ugly) implementations for what my blogposts. [Click here to go to my blog](https://www.miguelgondu.com/blogposts/).
+This repo contains the (highly unstructured and ugly) implementations for the blogposts I write.
+
+[Click here to go to my blog](https://www.miguelgondu.com/blogposts/).
 
 Here's a list of blogposts and their code.
 - 👨‍💻 An introduction to Bayesian optimization. [[Blogpost]](https://www.miguelgondu.com/blogposts/2023-07-31/intro-to-bo/) [[Code]](/intro_to_bo/running_example.py)
