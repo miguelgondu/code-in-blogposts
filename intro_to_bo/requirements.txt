@@ -1,0 +1,3 @@
+seaborn
+botorch
+numpy<2

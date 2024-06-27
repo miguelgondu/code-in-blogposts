@@ -1,0 +1,4 @@
+scikit-learn
+botorch
+seaborn
+numpy<2
