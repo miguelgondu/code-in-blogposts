@@ -1,0 +1,12 @@
+name: hdbo_blogposts
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+    - CairoSVG
+    - seaborn
+    - ax-platform
+    - "git+https://github.com/MachineLearningLifeScience/poli@v0.2.1"
+    - "git+https://github.com/MachineLearningLifeScience/poli-baselines@main"

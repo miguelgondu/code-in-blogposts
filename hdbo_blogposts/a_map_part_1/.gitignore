@@ -1,0 +1,5 @@
+__pycache__/
+oracle
+.vscode
+*.jpg
+*.json
