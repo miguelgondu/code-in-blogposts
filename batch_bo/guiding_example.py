@@ -329,7 +329,7 @@ def plot_cummulative_regret(
     if log_scale:
         ax.set_yscale("log")
     ax.set_ylim(10**-4, 10**0)
-    ax.set_title("|real optimum - best so far|")
+    # ax.set_title("|real optimum - best so far|")
 
 
 def bo():
@@ -363,10 +363,18 @@ def bo():
 
         # visualizing
         fig, axes = plt.subplots(1, 4, figsize=(5 * 4, 5))
-        plot_predicted_mean(axes[0], dataset, posterior, f)
-        plot_predicted_std(axes[1], dataset, posterior, f)
-        plot_acq_function(axes[2], dataset, posterior)
-        plot_cummulative_regret(axes[3], dataset, f, total_budget=60)
+        fig, axes = plt.subplot_mosaic(
+            mosaic=[
+                ["mean", "std", "acq"],
+                ["regret", "regret", "regret"],
+            ],
+            height_ratios=[4, 1.5],
+            figsize=(5 * 5, 5 * 2.05),
+        )
+        plot_predicted_mean(axes["mean"], dataset, posterior, f)
+        plot_predicted_std(axes["std"], dataset, posterior, f)
+        plot_acq_function(axes["acq"], dataset, posterior)
+        plot_cummulative_regret(axes["regret"], dataset, f, total_budget=60)
 
         fig.tight_layout()
         fig.savefig(

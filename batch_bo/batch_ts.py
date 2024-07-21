@@ -142,26 +142,18 @@ def plot_batch_ts(
     # focusing on the current predicted mean.
     fig, axes = plt.subplot_mosaic(
         mosaic=[
+            ["predicted_mean", "predicted_mean", "sample_0", "sample_1", "sample_2"],
+            ["predicted_mean", "predicted_mean", "sample_3", "sample_4", "sample_5"],
             [
-                "predicted_mean",
-                "predicted_mean",
-                "sample_0",
-                "sample_1",
-                "sample_2",
                 "cummulative_regret",
                 "cummulative_regret",
-            ],
-            [
-                "predicted_mean",
-                "predicted_mean",
-                "sample_3",
-                "sample_4",
-                "sample_5",
+                "cummulative_regret",
                 "cummulative_regret",
                 "cummulative_regret",
             ],
         ],
-        figsize=(5 * 7, 5 * 2),
+        height_ratios=[2, 2, 1.5],
+        figsize=(5 * 5, 5 * 2.05),
     )
 
     # Predictive mean
