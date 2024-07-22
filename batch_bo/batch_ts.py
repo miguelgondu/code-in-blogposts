@@ -1,5 +1,6 @@
 from pathlib import Path
 import sys
+from typing import Literal
 
 from jax import config
 
@@ -13,15 +14,8 @@ import numpy as np
 from scipy.stats.qmc import Sobol
 
 import gpjax as gpx
-from jax import grad, jit
 import jax.numpy as jnp
 import jax.random as jr
-import optax as ox
-
-from gpjax.decision_making.search_space import ContinuousSearchSpace
-from gpjax.decision_making.utility_maximizer import (
-    ContinuousSinglePointUtilityMaximizer,
-)
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -67,7 +61,7 @@ def batch_ts(num_iterations: int, batch_size: int = 6):
 
     samples = sobol_sampler.random(n=10).reshape(-1, 2)
     samples = samples * (10 - (-10)) - 10
-    noisy_evaluations = f(samples) + 0.25 * jr.normal(subkey, shape=(10, 1))
+    noisy_evaluations = f(samples)  # + 0.25 * jr.normal(subkey, shape=(10, 1))
 
     dataset = gpx.Dataset(X=samples, y=noisy_evaluations)
 
@@ -79,8 +73,8 @@ def batch_ts(num_iterations: int, batch_size: int = 6):
         key = jr.PRNGKey(iteration)
 
         # Fit the GP with the dataset we have so far
-        print(dataset)
-        print(dataset.X.shape)
+        # print(dataset)
+        # print(dataset.X.shape)
         opt_posterior = fit_gp(dataset, key)
 
         # Sample it batch_size times

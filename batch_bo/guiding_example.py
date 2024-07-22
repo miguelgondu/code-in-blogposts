@@ -53,7 +53,7 @@ def plot_guiding_example():
     ax = fig.add_subplot(121, projection="3d")
 
     # Adding the optima
-    print(f.function.optima_location)
+    # print(f.function.optima_location)
     optimum = f.function.optima_location
     ax.scatter(
         optimum[0],
