@@ -113,7 +113,7 @@ def q_ei_loop(
             )
 
             fig = axes[b].get_figure()
-            fig.savefig(FIG_DIR / f"q_ei_{iteration}_{b}.jpg")
+            fig.savefig(FIG_DIR / f"q_ei_{batch_size*iteration + b}.jpg")
 
     return batch_X
 
@@ -280,7 +280,7 @@ def q_ei(
         f,
         total_budget=10 + batch_size * num_iterations + 1,
     )
-    fig.savefig(FIG_DIR / f"q_ei_{iteration+1}.jpg")
+    fig.savefig(FIG_DIR / f"q_ei_{batch_size*(iteration+1)}.jpg")
 
 
 if __name__ == "__main__":
