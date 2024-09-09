@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.stats import linregress
 
 multiprocessing.set_start_method("fork")
 
@@ -25,7 +26,6 @@ def compute_loo(fit, title=""):
     plt.title(r"Pareto $\hat{k}$ " + title)
     plt.xlabel("Observation")
     plt.ylabel(r"$\hat{k}$")
-    plt.show()
 
     return loo
 
@@ -47,71 +47,71 @@ if __name__ == "__main__":
     # Fit the model
     model_code = """
     data {
-    int<lower=0> n_mutations_per_wt_1;
-    int<lower=0> n_mutations_per_wt_2;
-    int<lower=0> n_mutations_per_wt_3;
-    int<lower=0> n_mutations_per_wt_4;
-    int<lower=0> n_mutations_per_wt_5;
+        int<lower=0> n_mutations_per_wt_1;
+        int<lower=0> n_mutations_per_wt_2;
+        int<lower=0> n_mutations_per_wt_3;
+        int<lower=0> n_mutations_per_wt_4;
+        int<lower=0> n_mutations_per_wt_5;
 
-    real x_foldx_1[n_mutations_per_wt_1];
-    real x_foldx_2[n_mutations_per_wt_2];
-    real x_foldx_3[n_mutations_per_wt_3];
-    real x_foldx_4[n_mutations_per_wt_4];
-    real x_foldx_5[n_mutations_per_wt_5];
+        real x_foldx_1[n_mutations_per_wt_1];
+        real x_foldx_2[n_mutations_per_wt_2];
+        real x_foldx_3[n_mutations_per_wt_3];
+        real x_foldx_4[n_mutations_per_wt_4];
+        real x_foldx_5[n_mutations_per_wt_5];
 
-    real y_rasp_1[n_mutations_per_wt_1];
-    real y_rasp_2[n_mutations_per_wt_2];
-    real y_rasp_3[n_mutations_per_wt_3];
-    real y_rasp_4[n_mutations_per_wt_4];
-    real y_rasp_5[n_mutations_per_wt_5];
+        real y_rasp_1[n_mutations_per_wt_1];
+        real y_rasp_2[n_mutations_per_wt_2];
+        real y_rasp_3[n_mutations_per_wt_3];
+        real y_rasp_4[n_mutations_per_wt_4];
+        real y_rasp_5[n_mutations_per_wt_5];
     }
 
     parameters {
-    real slope;               // Shared slope
-    real offsets[5];     // Intercepts
-    real<lower=0> sigma_rasp[5]; // Standard deviations
+        real slope;               // Shared slope
+        real offsets[5];     // Intercepts
+        real<lower=0> sigma_rasp[5]; // Standard deviations
     }
 
     model {
-    // Priors
-    slope ~ normal(0, 10);
-    offsets ~ normal(0, 10);
+        // Priors
+        slope ~ normal(0, 10);
+        offsets ~ normal(0, 10);
 
-    // Likelihood
-    for (n in 1:n_mutations_per_wt_1) {
-        y_rasp_1[n] ~ normal(offsets[1] + slope * x_foldx_1[n], sigma_rasp[1]);
-    }
-    for (n in 1:n_mutations_per_wt_2) {
-        y_rasp_2[n] ~ normal(offsets[2] + slope * x_foldx_2[n], sigma_rasp[2]);
-    }
-    for (n in 1:n_mutations_per_wt_3) {
-        y_rasp_3[n] ~ normal(offsets[3] + slope * x_foldx_3[n], sigma_rasp[3]);
-    }
-    for (n in 1:n_mutations_per_wt_4) {
-        y_rasp_4[n] ~ normal(offsets[4] + slope * x_foldx_4[n], sigma_rasp[4]);
-    }
-    for (n in 1:n_mutations_per_wt_5) {
-        y_rasp_5[n] ~ normal(offsets[5] + slope * x_foldx_5[n], sigma_rasp[5]);
-    }
-    }
+        // Likelihood
+        for (n in 1:n_mutations_per_wt_1) {
+            y_rasp_1[n] ~ normal(offsets[1] + slope * x_foldx_1[n], sigma_rasp[1]);
+        }
+        for (n in 1:n_mutations_per_wt_2) {
+            y_rasp_2[n] ~ normal(offsets[2] + slope * x_foldx_2[n], sigma_rasp[2]);
+        }
+        for (n in 1:n_mutations_per_wt_3) {
+            y_rasp_3[n] ~ normal(offsets[3] + slope * x_foldx_3[n], sigma_rasp[3]);
+        }
+        for (n in 1:n_mutations_per_wt_4) {
+            y_rasp_4[n] ~ normal(offsets[4] + slope * x_foldx_4[n], sigma_rasp[4]);
+        }
+        for (n in 1:n_mutations_per_wt_5) {
+            y_rasp_5[n] ~ normal(offsets[5] + slope * x_foldx_5[n], sigma_rasp[5]);
+        }
+        }
 
     generated quantities {
-    vector[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n_mutations_per_wt_3 + n_mutations_per_wt_4 + n_mutations_per_wt_5] log_lik;
-    for (n in 1:n_mutations_per_wt_1) {
-        log_lik[n] = normal_lpdf(y_rasp_1[n] | offsets[1] + slope * x_foldx_1[n], sigma_rasp[1]);
-    }
-    for (n in 1:n_mutations_per_wt_2) {
-        log_lik[n_mutations_per_wt_1 + n] = normal_lpdf(y_rasp_2[n] | offsets[2] + slope * x_foldx_2[n], sigma_rasp[2]);
-    }
-    for (n in 1:n_mutations_per_wt_3) {
-        log_lik[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n] = normal_lpdf(y_rasp_3[n] | offsets[3] + slope * x_foldx_3[n], sigma_rasp[3]);
-    }
-    for (n in 1:n_mutations_per_wt_4) {
-        log_lik[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n_mutations_per_wt_3 + n] = normal_lpdf(y_rasp_4[n] | offsets[4] + slope * x_foldx_4[n], sigma_rasp[4]);
-    }
-    for (n in 1:n_mutations_per_wt_5) {
-        log_lik[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n_mutations_per_wt_3 + n_mutations_per_wt_4 + n] = normal_lpdf(y_rasp_5[n] | offsets[5] + slope * x_foldx_5[n], sigma_rasp[5]);
-    }
+        vector[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n_mutations_per_wt_3 + n_mutations_per_wt_4 + n_mutations_per_wt_5] log_lik;
+        for (n in 1:n_mutations_per_wt_1) {
+            log_lik[n] = normal_lpdf(y_rasp_1[n] | offsets[1] + slope * x_foldx_1[n], sigma_rasp[1]);
+        }
+        for (n in 1:n_mutations_per_wt_2) {
+            log_lik[n_mutations_per_wt_1 + n] = normal_lpdf(y_rasp_2[n] | offsets[2] + slope * x_foldx_2[n], sigma_rasp[2]);
+        }
+        for (n in 1:n_mutations_per_wt_3) {
+            log_lik[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n] = normal_lpdf(y_rasp_3[n] | offsets[3] + slope * x_foldx_3[n], sigma_rasp[3]);
+        }
+        for (n in 1:n_mutations_per_wt_4) {
+            log_lik[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n_mutations_per_wt_3 + n] = normal_lpdf(y_rasp_4[n] | offsets[4] + slope * x_foldx_4[n], sigma_rasp[4]);
+        }
+        for (n in 1:n_mutations_per_wt_5) {
+            log_lik[n_mutations_per_wt_1 + n_mutations_per_wt_2 + n_mutations_per_wt_3 + n_mutations_per_wt_4 + n] = normal_lpdf(y_rasp_5[n] | offsets[5] + slope * x_foldx_5[n], sigma_rasp[5]);
+        }
     }
     """
 
@@ -148,15 +148,19 @@ if __name__ == "__main__":
 
     # Plotting the results
     # Plotting the line
-    slope = fit.extract()["slope"].mean()
-    print(f"Slope: {slope}")
+    shared_slope = fit.extract()["slope"].mean()
+    print(f"Slope: {shared_slope}")
 
     loo = compute_loo(fit)
     print(loo)
 
     fig, axes = plt.subplots(1, 5, figsize=(20, 5), sharey=True)
     for i, ax, x_foldx, y_rasp, pdb in zip(
-        range(len(axes)), axes, wildtype_arrays_foldx, wildtype_arrays_rasp, unique_pdbs
+        range(len(axes)),
+        axes,
+        wildtype_arrays_foldx,
+        wildtype_arrays_rasp,
+        unique_pdbs,
     ):
         sns.scatterplot(x=x_foldx, y=y_rasp, ax=ax)
         ax.set_xlabel("FoldX stability")
@@ -164,8 +168,23 @@ if __name__ == "__main__":
 
         intercept = fit.extract()["offsets"][:, i].mean()
         domain = np.linspace(min(x_foldx), max(x_foldx), 100)
-        ax.plot(domain, slope * domain + intercept, color="red")
+        ax.plot(domain, shared_slope * domain + intercept, color="red")
 
-        ax.set_title(f"{pdb}")
+        if len(x_foldx) == 0:
+            continue
+
+        corr = np.corrcoef(x_foldx, y_rasp)[0, 1]
+
+        individual_slope, individual_intercept, r_value, p_value, std_err = linregress(
+            x_foldx, y_rasp, alternative="greater"
+        )
+        ax.plot(
+            domain,
+            individual_slope * domain + individual_intercept,
+            color="red",
+            linestyle="--",
+        )
+
+        ax.set_title(f"{pdb} (corr: {corr:.2f})")
 
     plt.show()
