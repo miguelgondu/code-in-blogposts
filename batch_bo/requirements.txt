@@ -1,2 +1,3 @@
-poli @ ...
+poli @ git+https://github.com/MachineLearningLifeScience/poli.git
 seaborn
+gpjax

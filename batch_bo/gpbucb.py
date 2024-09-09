@@ -1,12 +1,7 @@
 from pathlib import Path
 import sys
-from typing import Literal
 
 from jax import config
-
-config.update("jax_enable_x64", True)
-
-sys.path.append(str(Path(__file__).resolve().parent))
 
 from poli.repository import ToyContinuousBlackBox
 
@@ -28,6 +23,10 @@ from guiding_example import (
     plot_predicted_mean,
     plot_cummulative_regret,
 )
+
+config.update("jax_enable_x64", True)
+
+sys.path.append(str(Path(__file__).resolve().parent))
 
 THIS_DIR = Path(__file__).resolve().parent
 FIG_DIR = THIS_DIR / "figures" / "gpbucb"

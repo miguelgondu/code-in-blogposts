@@ -172,14 +172,14 @@ def fit_a_gp_to_sobol_samples():
     plt.show()
 
 
-def fit_gp(dataset: gpx.Dataset, key: jr.PRNGKey) -> gpx.Module:
+def fit_gp(dataset: gpx.Dataset, key: jr.PRNGKey) -> gpx.gps.ConjugatePosterior:
     # Construct the prior
     meanf = gpx.mean_functions.Zero()
     kernel = gpx.kernels.RBF()
     prior = gpx.gps.Prior(mean_function=meanf, kernel=kernel)
 
     # Define a likelihood
-    likelihood = gpx.likelihoods.Gaussian(num_datapoints=10)
+    likelihood = gpx.likelihoods.Gaussian(num_datapoints=len(dataset.y))
 
     # Construct the posterior
     posterior = prior * likelihood
@@ -188,12 +188,9 @@ def fit_gp(dataset: gpx.Dataset, key: jr.PRNGKey) -> gpx.Module:
     optimiser = ox.adam(learning_rate=1e-2)
 
     # Define the marginal log-likelihood
-    negative_mll = jit(gpx.objectives.ConjugateMLL(negative=True))
-
-    # Obtain Type 2 MLEs of the hyperparameters
     opt_posterior, history = gpx.fit(
         model=posterior,
-        objective=negative_mll,
+        objective=lambda p, d: -1.0 * gpx.objectives.conjugate_mll(p, d),
         train_data=dataset,
         optim=optimiser,
         num_iters=500,
@@ -239,7 +236,10 @@ def plot_array(
 
 
 def plot_predicted_mean(
-    ax: plt.Axes, dataset: gpx.Dataset, posterior: gpx.Module, f: ToyContinuousBlackBox
+    ax: plt.Axes,
+    dataset: gpx.Dataset,
+    posterior: gpx.gps.ConjugatePosterior,
+    f: ToyContinuousBlackBox,
 ):
     xy_test = np.array(
         [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
@@ -264,7 +264,10 @@ def plot_predicted_mean(
 
 
 def plot_predicted_std(
-    ax: plt.Axes, dataset: gpx.Dataset, posterior: gpx.Module, f: ToyContinuousBlackBox
+    ax: plt.Axes,
+    dataset: gpx.Dataset,
+    posterior: gpx.gps.ConjugatePosterior,
+    f: ToyContinuousBlackBox,
 ):
     xy_test = np.array(
         [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
@@ -289,7 +292,7 @@ def plot_predicted_std(
 def plot_acq_function(
     ax: plt.Axes,
     dataset: gpx.Dataset,
-    posterior: gpx.Module,
+    posterior: gpx.gps.ConjugatePosterior,
 ):
     xy_test = np.array(
         [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
