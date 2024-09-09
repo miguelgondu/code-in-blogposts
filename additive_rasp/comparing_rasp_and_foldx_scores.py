@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 
 import matplotlib.pyplot as plt
@@ -6,13 +7,15 @@ import pandas as pd
 import seaborn as sns
 from scipy.stats import linregress
 
+THIS_DIR = Path(__file__).resolve().parent
+
 if __name__ == "__main__":
-    df = pd.read_csv("proxy_rfp_seed_data.csv")
+    df = pd.read_csv(THIS_DIR / "proxy_rfp_seed_data.csv")
 
     df = df[df["foldx_seq"].apply(len) != 227]
     x_in_seed_filtered = df["foldx_seq"].values
 
-    rasp_seed_data = np.load("rasp_seed_data.npz")
+    rasp_seed_data = np.load(THIS_DIR / "rasp_seed_data.npz")
     x_rasp = rasp_seed_data["x0"]
     all_y_rasp = rasp_seed_data["y0"].flatten()
 
@@ -23,7 +26,7 @@ if __name__ == "__main__":
 
     all_y_foldx = df["stability"].values
 
-    with open("closest_pdbs_clean.json") as f:
+    with open(THIS_DIR / "closest_pdbs_clean.json") as f:
         closest_pdbs = json.load(f)
         df_closest_pdbs = pd.DataFrame(closest_pdbs)
 
