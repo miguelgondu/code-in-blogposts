@@ -1,4 +1,5 @@
 import multiprocessing
+from pathlib import Path
 
 import pystan
 import arviz as az
@@ -9,7 +10,32 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import linregress
 
+from poli.objective_repository import RaspProblemFactory
+
 multiprocessing.set_start_method("fork")
+
+THIS_DIR = Path(__file__).resolve().parent
+
+
+def get_wildtypes_from_pdb_files() -> dict[str, str]:
+    RFP_PDBS_DIR = THIS_DIR / "rfp_pdbs"
+    ALL_PDBS = list(RFP_PDBS_DIR.rglob("**/*.pdb"))
+    problem = RaspProblemFactory().create(
+        wildtype_pdb_path=ALL_PDBS,
+        additive=True,
+        chains_to_keep=[p.parent.name.split("_")[1] for p in ALL_PDBS],
+    )
+
+    wildtypes = {
+        ALL_PDBS[i].parent.name: "".join(problem.x0[i]) for i in range(len(ALL_PDBS))
+    }
+
+    return wildtypes
+
+
+def get_hamming_distance_to_wildtype(wildtype: str, mutant: str) -> int:
+    assert len(wildtype) == len(mutant)
+    return sum([wt != mt for wt, mt in zip(wildtype, mutant)])
 
 
 def compute_loo(fit, title=""):
@@ -41,6 +67,7 @@ if __name__ == "__main__":
     wildtype_arrays_rasp = [
         df[df["closest_pdb"] == pdb]["rasp_score"].values for pdb in unique_pdbs
     ]
+    mutations = [df[df["closest_pdb"] == pdb]["sequence"].values for pdb in unique_pdbs]
     n_mutations_per_wt = [len(arr) for arr in wildtype_arrays_foldx]
     assert n_mutations_per_wt == [len(arr) for arr in wildtype_arrays_rasp]
 
@@ -154,15 +181,38 @@ if __name__ == "__main__":
     loo = compute_loo(fit)
     print(loo)
 
+    wildtypes = get_wildtypes_from_pdb_files()
+
+    max_distance = -np.inf
+    for pdb, mutations_of_wt in zip(unique_pdbs, mutations):
+        wildtype = wildtypes[pdb]
+        distances = [
+            get_hamming_distance_to_wildtype(wildtype, mutation)
+            for mutation in mutations_of_wt
+        ]
+        max_distance = max(max_distance, max(distances))
+
     fig, axes = plt.subplots(1, 5, figsize=(20, 5), sharey=True)
-    for i, ax, x_foldx, y_rasp, pdb in zip(
+    for i, ax, x_foldx, y_rasp, pdb, mutations_of_wt in zip(
         range(len(axes)),
         axes,
         wildtype_arrays_foldx,
         wildtype_arrays_rasp,
         unique_pdbs,
+        mutations,
     ):
-        sns.scatterplot(x=x_foldx, y=y_rasp, ax=ax)
+        wildtype = wildtypes[pdb]
+        distances = [
+            get_hamming_distance_to_wildtype(wildtype, mutation)
+            for mutation in mutations_of_wt
+        ]
+
+        sns.scatterplot(
+            x=x_foldx,
+            y=y_rasp,
+            ax=ax,
+            hue=distances,
+        )
         ax.set_xlabel("FoldX stability")
         ax.set_ylabel("Additive RASP stability")
 

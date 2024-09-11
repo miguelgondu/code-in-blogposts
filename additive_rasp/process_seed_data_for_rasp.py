@@ -1,3 +1,4 @@
+from time import time
 from pathlib import Path
 
 import pandas as pd
@@ -24,8 +25,9 @@ if __name__ == "__main__":
     print(problem)
     f, x0 = problem.black_box, problem.x0
 
+    start_time = time()
     y0_for_filtered_seed_data = f(np.array(x_in_seed_filtered))
-    print(y0_for_filtered_seed_data)
+    print(f"Time taken: {time() - start_time:.2f}s")
 
     # Save the seed data
     np.savez(
