@@ -1,7 +1,5 @@
 from jax import config
 
-config.update("jax_enable_x64", True)
-
 import gpjax as gpx
 from jax import grad, jit
 import jax.numpy as jnp
@@ -10,9 +8,12 @@ import optax as ox
 
 import matplotlib.pyplot as plt
 
+config.update("jax_enable_x64", True)
+
 key = jr.key(123)
 
-f = lambda x: 10 * jnp.sin(x)
+def f(x):
+    return 10.0 * jnp.sin(x)
 
 n = 50
 x = jr.uniform(key=key, minval=-3.0, maxval=3.0, shape=(n, 1)).sort()
