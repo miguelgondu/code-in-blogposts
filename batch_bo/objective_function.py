@@ -3,8 +3,7 @@ import numpy as np
 
 from poli.repository import ToyContinuousBlackBox
 
-FUNCTION_NAME = "cross_in_tray"
-N_DIMS = 2
+from constants import FUNCTION_NAME, N_DIMS
 
 
 def compute_domain() -> torch.Tensor:

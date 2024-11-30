@@ -1,33 +1,26 @@
 import matplotlib.pyplot as plt
 import torch
-import numpy as np
 from botorch.models import SingleTaskGP
-import gpytorch
 from botorch.models.transforms.input import Normalize
 
-from objective_function import compute_domain, objective_function, N_DIMS
+from constants import FIGURES_DIR, DEFAULT_KERNEL, N_DIMS, SEED, TOTAL_BUDGET
+from objective_function import compute_domain, objective_function
 from initial_design import compute_initial_design_using_sobol
 from training import train_model_using_botorch_utils
-from plotting import plot_predicted_mean, plot_cummulative_regret
+from plotting import (
+    plot_bo_step,
+)
 from dataset import Dataset
-from constants import FIGURES_DIR
 
 torch.set_default_dtype(torch.float64)
 
-DEFAULT_KERNEL = gpytorch.kernels.ScaleKernel(
-    gpytorch.kernels.RBFKernel(
-        ard_num_dims=N_DIMS,
-        lengthscale_prior=gpytorch.priors.LogNormalPrior(np.log(N_DIMS) / 2, 1.0),
-    )
-)
 
-
-def run_sequential_vanilla_bo_using_thompson_sampling(n_iterations: int, seed: int = 0):
-    torch.manual_seed(seed)
+def run_sequential_vanilla_bo_using_thompson_sampling():
+    torch.manual_seed(SEED)
 
     dataset = compute_initial_design_using_sobol(n_points=2 * N_DIMS + 2, n_dimension=2)
 
-    for iteration in range(n_iterations):
+    for iteration in range(TOTAL_BUDGET):
         model = SingleTaskGP(
             dataset.X,
             dataset.y,
@@ -36,7 +29,7 @@ def run_sequential_vanilla_bo_using_thompson_sampling(n_iterations: int, seed: i
         )
         model = train_model_using_botorch_utils(model)
 
-        fig = plot_bo_step(model, dataset, n_iterations=n_iterations)
+        fig = plot_bo_step(model, dataset, n_iterations=TOTAL_BUDGET)
         fig.savefig(
             FIGURES_DIR / f"sequential_vanilla_bo_{iteration:09d}.png",
             bbox_inches="tight",
@@ -53,9 +46,12 @@ def run_sequential_vanilla_bo_using_thompson_sampling(n_iterations: int, seed: i
         dataset = Dataset(
             X=torch.cat([dataset.X, x_next]), y=torch.cat([dataset.y, y_next])
         )
-        print(f"New data point: {x_next} - Value: {y_next}")
+        print(
+            f"New data point: {x_next} - Value: {y_next} - Best so far: {dataset.y.max()}"
+        )
 
-    fig = plot_bo_step(model, dataset, n_iterations)
+    fig = plot_bo_step(model, dataset, TOTAL_BUDGET)
+    fig.tight_layout()
     fig.savefig(
         FIGURES_DIR / f"sequential_vanilla_bo_{iteration+1:09d}.png",
         bbox_inches="tight",
@@ -65,30 +61,5 @@ def run_sequential_vanilla_bo_using_thompson_sampling(n_iterations: int, seed: i
     plt.show()
 
 
-def plot_bo_step(posterior: SingleTaskGP, dataset: Dataset, n_iterations: int):
-    fig, axes = plt.subplot_mosaic(
-        mosaic=[
-            ["predicted_mean", "predicted_mean"],
-            ["predicted_mean", "predicted_mean"],
-            ["cummulative_regret", "cummulative_regret"],
-        ],
-        height_ratios=[2, 2, 2],
-        figsize=(5 * 5, 5 * 3),
-    )
-
-    plot_predicted_mean(
-        ax=axes["predicted_mean"],
-        dataset=dataset,
-        posterior=posterior,
-    )
-    axes["predicted_mean"].axis("off")
-    plot_cummulative_regret(
-        ax=axes["cummulative_regret"],
-        dataset=dataset,
-        total_budget=100,
-    )
-    return fig
-
-
 if __name__ == "__main__":
-    run_sequential_vanilla_bo_using_thompson_sampling(100)
+    run_sequential_vanilla_bo_using_thompson_sampling()
