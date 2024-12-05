@@ -1,0 +1,8 @@
+Cython
+seaborn
+numpy
+pandas
+matplotlib
+pystan
+arviz
+poli @ git+https://github.com/MachineLearningLifeScience/poli
