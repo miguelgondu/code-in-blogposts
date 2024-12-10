@@ -328,7 +328,12 @@ def plot_bo_step(posterior: SingleTaskGP, dataset: Dataset, n_iterations: int):
     return fig
 
 
-def make_video(pattern: str, output_filename: str, overwrite: bool = True):
+def make_video(
+    pattern: str,
+    output_filename: str,
+    overwrite: bool = True,
+    for_quicktime: bool = True,
+):
     """This function uses ffmpeg to create a video from a pattern."""
 
     # ffmpeg -framerate 2 -i gpbucb_%d.jpg -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" gpbucb.mp4
@@ -339,6 +344,16 @@ def make_video(pattern: str, output_filename: str, overwrite: bool = True):
         "2",
         "-i",
         pattern,
+    ]
+    if for_quicktime:
+        command += [
+            "-vcodec",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+        ]
+
+    command += [
         "-vf",
         "pad=ceil(iw/2)*2:ceil(ih/2)*2",
         output_filename,

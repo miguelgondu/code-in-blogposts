@@ -16,6 +16,8 @@ torch.set_default_dtype(torch.float64)
 
 
 def run_sequential_vanilla_bo_using_thompson_sampling():
+    FIGURES_DIR_FOR_EXPERIMENT = FIGURES_DIR / "sequential_vanilla_bo"
+    FIGURES_DIR_FOR_EXPERIMENT.mkdir(exist_ok=True, parents=True)
     torch.manual_seed(SEED)
 
     dataset = compute_initial_design_using_sobol(n_points=2 * N_DIMS + 2, n_dimension=2)
@@ -31,7 +33,7 @@ def run_sequential_vanilla_bo_using_thompson_sampling():
 
         fig = plot_bo_step(model, dataset, n_iterations=TOTAL_BUDGET)
         fig.savefig(
-            FIGURES_DIR / f"sequential_vanilla_bo_{iteration:09d}.png",
+            FIGURES_DIR_FOR_EXPERIMENT / f"sequential_vanilla_bo_{iteration:09d}.png",
             bbox_inches="tight",
         )
         plt.close(fig)
