@@ -8,6 +8,8 @@ dependencies = [
     "ax-platform>=0.4.3",
     "botorch>=0.12.0",
     "gpjax>=0.9.3",
+    "ipython>=8.30.0",
     "matplotlib>=3.9.2",
     "poli-core>=1.1.0",
+    "scikit-learn>=1.5.2",
 ]

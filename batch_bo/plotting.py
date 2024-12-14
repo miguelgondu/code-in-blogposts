@@ -10,10 +10,14 @@ from botorch.models import SingleTaskGP
 from botorch.models.transforms.input import Normalize
 from botorch.acquisition import LogExpectedImprovement
 
+import gpjax as gpx
+from gpjax.gps import ConjugatePosterior
+
 from objective_function import objective_function, compute_objective_function_optima
 from dataset import Dataset
 from constants import N_DIMS, TOTAL_BUDGET, DEFAULT_KERNEL, SEED
 from training import train_model_using_botorch_utils
+from models import ExactGPModel, ExactGPModelJax, ExactGPScikitLearn
 
 
 def plot_array(
@@ -51,9 +55,11 @@ def plot_objective_function(ax: plt.Axes):
 def plot_predicted_mean(
     ax: plt.Axes,  # type: ignore
     dataset: Dataset,
-    posterior: SingleTaskGP,
+    posterior: SingleTaskGP | ExactGPModel | ExactGPModelJax | ExactGPScikitLearn,
 ):
-    posterior.eval()
+    if isinstance(posterior, (SingleTaskGP, ExactGPModel)):
+        posterior.eval()
+
     xy_test = torch.Tensor(
         [
             [x, y]
@@ -62,8 +68,17 @@ def plot_predicted_mean(
         ]
     )
 
-    predictive_dist: MultivariateNormal = posterior.posterior(xy_test)
-    predictive_mean = predictive_dist.mean.numpy(force=True)
+    if isinstance(posterior, (SingleTaskGP, ExactGPModel, ExactGPScikitLearn)):
+        predictive_dist: MultivariateNormal = posterior.posterior(xy_test)
+        predictive_mean = predictive_dist.mean.numpy(force=True)
+    elif isinstance(posterior, (ExactGPModelJax, ConjugatePosterior)):
+        # GPJax models:
+        D = gpx.Dataset(X=dataset.X.numpy(force=True), y=dataset.y.numpy(force=True))
+        latent_dist = posterior(xy_test.numpy(force=True), D)
+        predictive_dist = posterior.likelihood(latent_dist)
+        predictive_mean = predictive_dist.mean()
+    else:
+        raise ValueError("Invalid posterior: ", posterior, type(posterior))
 
     ax.contourf(
         np.linspace(-10, 10, 100),
@@ -82,9 +97,11 @@ def plot_predicted_mean(
 def plot_predicted_std(
     ax: plt.Axes,  # type: ignore
     dataset: Dataset,
-    posterior: SingleTaskGP,
+    posterior: SingleTaskGP | ExactGPModel | ExactGPModelJax | ExactGPScikitLearn,
 ):
-    posterior.eval()
+    if isinstance(posterior, (SingleTaskGP, ExactGPModel)):
+        posterior.eval()
+
     xy_test = torch.Tensor(
         [
             [x, y]
@@ -93,8 +110,18 @@ def plot_predicted_std(
         ]
     )
 
-    predictive_dist: MultivariateNormal = posterior.posterior(xy_test)
-    predictive_std = predictive_dist.stddev.numpy(force=True)
+    if isinstance(posterior, (SingleTaskGP, ExactGPModel, ExactGPScikitLearn)):
+        predictive_dist: MultivariateNormal = posterior.posterior(xy_test)
+        predictive_std = predictive_dist.stddev.numpy(force=True)
+    elif isinstance(posterior, (ExactGPModelJax, ConjugatePosterior)):
+        # GPJax models:
+        D = gpx.Dataset(X=dataset.X.numpy(force=True), y=dataset.y.numpy(force=True))
+        latent_dist = posterior(xy_test.numpy(force=True), D)
+        predictive_dist = posterior.likelihood(latent_dist)
+        predictive_std = predictive_dist.stddev()
+    else:
+        raise ValueError("Invalid posterior: ", posterior, type(posterior))
+
     ax.contourf(
         np.linspace(-10, 10, 100),
         np.linspace(-10, 10, 100),
@@ -152,15 +179,29 @@ def plot_parity_on_training_data(
     ax: plt.Axes, dataset: Dataset, posterior: SingleTaskGP
 ):
     actual_values = dataset.y.numpy(force=True).flatten()
-    predicted_values = posterior.posterior(dataset.X).mean.numpy(force=True).flatten()
-    error_bars = posterior.posterior(dataset.X).stddev.numpy(force=True)
+    if isinstance(posterior, (SingleTaskGP, ExactGPModel, ExactGPScikitLearn)):
+        predictive_dist: MultivariateNormal = posterior.posterior(dataset.X)
+        predicted_values = predictive_dist.mean.numpy(force=True)
+        error_bars = predictive_dist.stddev.numpy(force=True)
+    elif isinstance(posterior, (ExactGPModelJax, ConjugatePosterior)):
+        # GPJax models:
+        D = gpx.Dataset(X=dataset.X.numpy(force=True), y=dataset.y.numpy(force=True))
+        latent_dist = posterior(D.X, D)
+        predictive_dist = posterior.likelihood(latent_dist)
+        predicted_values = predictive_dist.mean()
+        error_bars = predictive_dist.stddev()
+    else:
+        raise ValueError("Invalid posterior: ", posterior, type(posterior))
 
-    min_ = min(np.concatenate((predicted_values, actual_values)))
-    max_ = max(np.concatenate((predicted_values, actual_values)))
+    # predicted_values = posterior.posterior(dataset.X).mean.numpy(force=True).flatten()
+    # error_bars = posterior.posterior(dataset.X).stddev.numpy(force=True)
+
+    min_ = min(np.concatenate((predicted_values.flatten(), actual_values.flatten())))
+    max_ = max(np.concatenate((predicted_values.flatten(), actual_values.flatten())))
 
     ax.errorbar(
         x=actual_values,
-        y=predicted_values,
+        y=predicted_values.flatten(),
         yerr=error_bars,
         fmt=".k",
         label="mean predictions vs. actual values",
@@ -258,7 +299,7 @@ def plot_validation_pair_plot(
     )
     ax.set_xlim(min_ - padding, max_ + padding)
     ax.set_ylim(min_ - padding, max_ + padding)
-    ax.set_title("Leave-one-out cross-validation")
+    ax.set_title(f"Validation on {int(percentage * 100):3d}% of the data")
 
 
 def plot_bo_step(posterior: SingleTaskGP, dataset: Dataset, n_iterations: int):
