@@ -54,10 +54,10 @@ def train_exact_gp_using_gradient_descent(
         optimizer.zero_grad()
 
         # Output from model
-        output = model(model.train_x)
+        output = model(model.train_inputs[0])
 
         # Calculate loss and backpropagate gradients
-        loss = -mll(output, model.train_y)
+        loss = -mll(output, model.train_targets)
         loss.backward()
 
         optimizer.step()

@@ -1,7 +1,7 @@
 import torch
 import torch.quasirandom
 
-from batch_bo.functions import objective_function
+from batch_bo.functions.objective_function import objective_function
 
 from batch_bo.dataset import Dataset
 

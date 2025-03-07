@@ -18,7 +18,7 @@ from batch_bo.functions.objective_function import (
     compute_objective_function_optima,
 )
 from batch_bo.dataset import Dataset
-from batch_bo.utils.constants import N_DIMS, TOTAL_BUDGET, DEFAULT_KERNEL
+from batch_bo.utils.constants import N_DIMS, TOTAL_BUDGET, DEFAULT_KERNEL, LIMITS
 from batch_bo.fitting.gp import train_model_using_botorch_utils
 from batch_bo.models import ExactGPModel, ExactGPModelJax, ExactGPScikitLearn
 
@@ -38,15 +38,15 @@ def plot_objective_function(ax: plt.Axes):
     xy_test = torch.Tensor(
         [
             [x, y]
-            for x in torch.linspace(-10, 10, 100)
-            for y in torch.linspace(-10, 10, 100)
+            for x in torch.linspace(*LIMITS, 100)
+            for y in torch.linspace(*LIMITS, 100)
         ]
     )
     z = objective_function(xy_test).reshape(100, 100).T
 
     ax.contourf(
-        np.linspace(-10, 10, 100),
-        np.linspace(-10, 10, 100),
+        np.linspace(*LIMITS, 100),
+        np.linspace(*LIMITS, 100),
         z,
         levels=100,
         cmap="viridis",
@@ -66,13 +66,16 @@ def plot_predicted_mean(
     xy_test = torch.Tensor(
         [
             [x, y]
-            for x in torch.linspace(-10, 10, 100)
-            for y in torch.linspace(-10, 10, 100)
+            for x in torch.linspace(*LIMITS, 100)
+            for y in torch.linspace(*LIMITS, 100)
         ]
     )
 
     if isinstance(posterior, (SingleTaskGP, ExactGPModel, ExactGPScikitLearn)):
-        predictive_dist: MultivariateNormal = posterior.posterior(xy_test)
+        min_, max_ = LIMITS
+        predictive_dist: MultivariateNormal = posterior.posterior(
+            (xy_test - min_) / (max_ - min_)
+        )
         predictive_mean = predictive_dist.mean.numpy(force=True)
     elif isinstance(posterior, (ExactGPModelJax, ConjugatePosterior)):
         # GPJax models:
@@ -91,8 +94,8 @@ def plot_predicted_mean(
         raise ValueError("Invalid posterior: ", posterior, type(posterior))
 
     ax.contourf(
-        np.linspace(-10, 10, 100),
-        np.linspace(-10, 10, 100),
+        np.linspace(*LIMITS, 100),
+        np.linspace(*LIMITS, 100),
         predictive_mean.reshape(100, 100).T,
         levels=100,
         cmap="viridis",
@@ -115,17 +118,27 @@ def plot_predicted_std(
     xy_test = torch.Tensor(
         [
             [x, y]
-            for x in torch.linspace(-10, 10, 100)
-            for y in torch.linspace(-10, 10, 100)
+            for x in torch.linspace(*LIMITS, 100)
+            for y in torch.linspace(*LIMITS, 100)
         ]
     )
 
     if isinstance(posterior, (SingleTaskGP, ExactGPModel, ExactGPScikitLearn)):
-        predictive_dist: MultivariateNormal = posterior.posterior(xy_test)
+        min_, max_ = LIMITS
+        predictive_dist: MultivariateNormal = posterior.posterior(
+            (xy_test - min_) / (max_ - min_)
+        )
         predictive_std = predictive_dist.stddev.numpy(force=True)
     elif isinstance(posterior, (ExactGPModelJax, ConjugatePosterior)):
         # GPJax models:
-        D = gpx.Dataset(X=dataset.X.numpy(force=True), y=dataset.y.numpy(force=True))
+        if isinstance(dataset, gpx.Dataset):
+            D = dataset
+        elif isinstance(dataset, Dataset):
+            D = gpx.Dataset(
+                X=dataset.X.numpy(force=True), y=dataset.y.numpy(force=True)
+            )
+        else:
+            raise ValueError("Invalid dataset: ", dataset, type(dataset))
         latent_dist = posterior(xy_test.numpy(force=True), D)
         predictive_dist = posterior.likelihood(latent_dist)
         predictive_std = predictive_dist.stddev()
@@ -133,8 +146,8 @@ def plot_predicted_std(
         raise ValueError("Invalid posterior: ", posterior, type(posterior))
 
     ax.contourf(
-        np.linspace(-10, 10, 100),
-        np.linspace(-10, 10, 100),
+        np.linspace(*LIMITS, 100),
+        np.linspace(*LIMITS, 100),
         predictive_std.reshape(100, 100).T,
         levels=100,
         cmap="viridis",
@@ -151,15 +164,15 @@ def plot_acq_function(
 ):
     posterior.eval()
     xy_test = np.array(
-        [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
+        [[x, y] for x in np.linspace(*LIMITS, 100) for y in np.linspace(*LIMITS, 100)]
     )
     acq_function = LogExpectedImprovement(posterior, dataset.y.max())
 
     acq_values = acq_function(xy_test)
     ax.scatter(dataset.X[:, 0], dataset.X[:, 1], c=dataset.y, cmap="viridis")
     ax.contourf(
-        np.linspace(-10, 10, 100),
-        np.linspace(-10, 10, 100),
+        np.linspace(*LIMITS, 100),
+        np.linspace(*LIMITS, 100),
         acq_values.reshape(100, 100).T,
         levels=100,
         cmap="viridis",
@@ -190,7 +203,9 @@ def plot_parity_on_training_data(
 ):
     actual_values = dataset.y.numpy(force=True).flatten()
     if isinstance(posterior, (SingleTaskGP, ExactGPModel, ExactGPScikitLearn)):
-        predictive_dist: MultivariateNormal = posterior.posterior(dataset.X)
+        predictive_dist: MultivariateNormal = posterior.posterior(
+            dataset.min_max_scaled_X
+        )
         predicted_values = predictive_dist.mean.numpy(force=True)
         error_bars = predictive_dist.stddev.numpy(force=True)
     elif isinstance(posterior, (ExactGPModelJax, ConjugatePosterior)):

@@ -19,7 +19,7 @@ from batch_bo.plotting import (
     plot_cummulative_regret,
 )
 from batch_bo.fitting.gp import fit_gp
-from batch_bo.utils.constants import ROOT_DIR
+from batch_bo.utils.constants import ROOT_DIR, LIMITS
 
 config.update("jax_enable_x64", True)
 
@@ -54,13 +54,20 @@ def batch_ts(num_iterations: int, batch_size: int = 6):
     key, subkey = jr.split(key)
 
     samples = sobol_sampler.random(n=10).reshape(-1, 2)
-    samples = samples * (10 - (-10)) - 10
+
+    # scaling the samples
+    min_, max_ = LIMITS
+    samples = samples * (max_ - min_) + min_
     noisy_evaluations = f(samples)  # + 0.25 * jr.normal(subkey, shape=(10, 1))
 
     dataset = gpx.Dataset(X=samples, y=noisy_evaluations)
 
     domain = np.array(
-        [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
+        [
+            [x, y]
+            for x in np.linspace(min_, max_, 100)
+            for y in np.linspace(min_, max_, 100)
+        ]
     )
 
     for iteration in range(num_iterations):
@@ -158,8 +165,8 @@ def plot_batch_ts(
         ax.axis("off")
         plot_array(
             ax=ax,
-            x=np.linspace(-10, 10, 100),
-            y=np.linspace(-10, 10, 100),
+            x=np.linspace(*LIMITS, 100),
+            y=np.linspace(*LIMITS, 100),
             array=samples[i].reshape(100, 100).T,
             vmin=1.0,
             vmax=f.function.optima,
