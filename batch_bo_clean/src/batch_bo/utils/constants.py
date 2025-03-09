@@ -9,7 +9,8 @@ FIGURES_DIR = ROOT_DIR / "figures"
 FUNCTION_NAME = "cross_in_tray"
 N_DIMS = 2
 TOTAL_BUDGET = 50
-LIMITS = (-4.0, 4.0)
+LIMITS = (-5.0, 5.0)
+RESOLUTION = 100
 
 DEFAULT_KERNEL = gpytorch.kernels.ScaleKernel(
     gpytorch.kernels.MaternKernel(

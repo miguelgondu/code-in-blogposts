@@ -1,4 +1,3 @@
-from pathlib import Path
 from jax import config
 
 from poli.repository import ToyContinuousBlackBox
@@ -19,7 +18,7 @@ from batch_bo.plotting import (
     plot_cummulative_regret,
 )
 from batch_bo.fitting.gp import fit_gp
-from batch_bo.utils.constants import ROOT_DIR, LIMITS
+from batch_bo.utils.constants import ROOT_DIR, LIMITS, RESOLUTION
 
 config.update("jax_enable_x64", True)
 
@@ -65,8 +64,8 @@ def batch_ts(num_iterations: int, batch_size: int = 6):
     domain = np.array(
         [
             [x, y]
-            for x in np.linspace(min_, max_, 100)
-            for y in np.linspace(min_, max_, 100)
+            for x in np.linspace(min_, max_, RESOLUTION)
+            for y in np.linspace(min_, max_, RESOLUTION)
         ]
     )
 
@@ -165,9 +164,9 @@ def plot_batch_ts(
         ax.axis("off")
         plot_array(
             ax=ax,
-            x=np.linspace(*LIMITS, 100),
-            y=np.linspace(*LIMITS, 100),
-            array=samples[i].reshape(100, 100).T,
+            x=np.linspace(*LIMITS, RESOLUTION),
+            y=np.linspace(*LIMITS, RESOLUTION),
+            array=samples[i].reshape(100, RESOLUTION).T,
             vmin=1.0,
             vmax=f.function.optima,
         )

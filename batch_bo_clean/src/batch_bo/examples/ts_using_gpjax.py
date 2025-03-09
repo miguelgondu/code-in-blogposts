@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from batch_bo.plotting.plotting import (
     plot_predicted_mean,
     plot_predicted_std,
-    plot_acq_function,
+    plot_array,
     plot_cummulative_regret,
 )
 from batch_bo.fitting.gp import fit_gp
@@ -36,8 +36,8 @@ def plot_guiding_example():
     n_dims = 2
     f = ToyContinuousBlackBox(function_name=function_name, n_dimensions=n_dims)
 
-    x = np.linspace(-10, 10, 100)
-    y = np.linspace(-10, 10, 100)
+    x = np.linspace(*LIMITS, 100)
+    y = np.linspace(*LIMITS, 100)
     xy = np.array(np.meshgrid(x, y)).T.reshape(-1, n_dims)
 
     z = f(xy)
@@ -124,7 +124,7 @@ def fit_a_gp_to_sobol_samples():
     )
 
     xy_test = np.array(
-        [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
+        [[x, y] for x in np.linspace(*LIMITS, 100) for y in np.linspace(*LIMITS, 100)]
     )
 
     latent_dist = opt_posterior(xy_test, dataset)
@@ -134,8 +134,8 @@ def fit_a_gp_to_sobol_samples():
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     axes[0].contourf(
-        np.linspace(-10, 10, 100),
-        np.linspace(-10, 10, 100),
+        np.linspace(*LIMITS, 100),
+        np.linspace(*LIMITS, 100),
         predictive_mean.reshape(100, 100).T,
         levels=100,
         cmap="viridis",
@@ -147,8 +147,8 @@ def fit_a_gp_to_sobol_samples():
     axes[0].set_title("Predictive mean")
     axes[1].scatter(samples[:, 0], samples[:, 1], c=noisy_evaluations, cmap="viridis")
     axes[1].contourf(
-        np.linspace(-10, 10, 100),
-        np.linspace(-10, 10, 100),
+        np.linspace(*LIMITS, 100),
+        np.linspace(*LIMITS, 100),
         predictive_std.reshape(100, 100).T,
         levels=100,
         cmap="viridis",
@@ -166,19 +166,19 @@ def fit_a_gp_to_sobol_samples():
 
 
 def bo_loop(dataset: gpx.Dataset, key: jr.PRNGKey) -> jnp.ndarray:
-    negative_dataset = gpx.Dataset(X=dataset.X, y=-dataset.y)
-    opt_posterior = fit_gp(negative_dataset, key)
+    # negative_dataset = gpx.Dataset(X=dataset.X, y=-dataset.y)
+    opt_posterior = fit_gp(dataset, key)
 
     # Define the utility function
     xy_test = np.array(
-        [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
+        [[x, y] for x in np.linspace(*LIMITS, 100) for y in np.linspace(*LIMITS, 100)]
     )
-    sample = opt_posterior.predict(xy_test, train_data=dataset).sample(
+    ts_sample = opt_posterior.predict(xy_test, train_data=dataset).sample(
         key, sample_shape=(1,)
     )
-    next_candidate = xy_test[jnp.argmax(sample)]
+    next_candidate = xy_test[jnp.argmax(ts_sample)]
 
-    return next_candidate
+    return next_candidate, ts_sample
 
 
 def bo():
@@ -202,7 +202,8 @@ def bo():
 
     for i in range(50):
         key = jr.PRNGKey(i)
-        next_candidate = bo_loop(dataset, key).reshape(1, -1)
+        next_candidate, ts_sample = bo_loop(dataset, key)
+        next_candidate = next_candidate.reshape(1, -1)
         next_evaluation = f(next_candidate)  # + 0.25 * jr.normal(key, shape=(1, 1))
         dataset = gpx.Dataset(
             X=np.vstack([dataset.X, next_candidate]),
@@ -212,7 +213,6 @@ def bo():
         posterior = fit_gp(dataset, key)
 
         # visualizing
-        fig, axes = plt.subplots(1, 4, figsize=(5 * 4, 5))
         fig, axes = plt.subplot_mosaic(
             mosaic=[
                 ["mean", "std", "acq"],
@@ -223,7 +223,17 @@ def bo():
         )
         plot_predicted_mean(axes["mean"], dataset, posterior)
         plot_predicted_std(axes["std"], dataset, posterior)
-        # plot_acq_function(axes["acq"], dataset, posterior)
+        plot_array(
+            axes["acq"],
+            np.linspace(*LIMITS, 100),
+            np.linspace(*LIMITS, 100),
+            ts_sample.reshape(100, 100).T,
+            vmin=ts_sample.min(),
+            vmax=ts_sample.max(),
+        )
+        axes["acq"].scatter(
+            next_candidate[0, 0], next_candidate[0, 1], c="r", marker="x"
+        )
         plot_cummulative_regret(axes["regret"], dataset, total_budget=60)
 
         fig.tight_layout()

@@ -23,6 +23,7 @@ from batch_bo.plotting import (
     plot_predicted_mean,
     plot_cummulative_regret,
 )
+from batch_bo.utils.constants import RESOLUTION
 
 config.update("jax_enable_x64", True)
 
@@ -59,7 +60,11 @@ def propose_batch(
 
     batch_ = []
     domain = np.array(
-        [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
+        [
+            [x, y]
+            for x in np.linspace(-10, 10, RESOLUTION)
+            for y in np.linspace(-10, 10, RESOLUTION)
+        ]
     )
     for b in range(batch_size):
         # Maximize the UCB
@@ -88,9 +93,9 @@ def propose_batch(
 
             plot_array(
                 axes[b],
-                x=np.linspace(-10, 10, 100),
-                y=np.linspace(-10, 10, 100),
-                array=ucb_values.reshape(100, 100).T,
+                x=np.linspace(-10, 10, RESOLUTION),
+                y=np.linspace(-10, 10, RESOLUTION),
+                array=ucb_values.reshape(100, RESOLUTION).T,
                 vmin=None,
                 vmax=None,
             )
@@ -130,10 +135,6 @@ def loop(
     noisy_evaluations = f(samples)  # + 0.25 * jr.normal(subkey, shape=(10, 1))
 
     dataset = gpx.Dataset(X=samples, y=noisy_evaluations)
-
-    domain = np.array(
-        [[x, y] for x in np.linspace(-10, 10, 100) for y in np.linspace(-10, 10, 100)]
-    )
 
     for iteration in range(num_iterations):
         fig, axes = plt.subplot_mosaic(
@@ -202,7 +203,7 @@ def loop(
             ],
             iteration=iteration,
         )
-        axes["sample_1"].set_title(f"GP-BUCB")
+        axes["sample_1"].set_title("GP-BUCB")
         batch_ = np.vstack(batch_to_evaluate)
 
         y = f(batch_)

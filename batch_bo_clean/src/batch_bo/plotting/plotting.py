@@ -160,15 +160,20 @@ def plot_predicted_std(
 def plot_acq_function(
     ax: plt.Axes,  # type: ignore
     dataset: Dataset,
-    posterior: SingleTaskGP,
+    posterior: SingleTaskGP | ExactGPModel | ConjugatePosterior | ExactGPScikitLearn,
 ):
-    posterior.eval()
     xy_test = np.array(
         [[x, y] for x in np.linspace(*LIMITS, 100) for y in np.linspace(*LIMITS, 100)]
     )
-    acq_function = LogExpectedImprovement(posterior, dataset.y.max())
+    if isinstance(posterior, (SingleTaskGP, ExactGPModel)):
+        posterior.eval()
+        acq_function = LogExpectedImprovement(posterior, dataset.y.max())
+        acq_values = acq_function(xy_test)
+    elif isinstance(posterior, ConjugatePosterior):
+        ...
+    else:
+        ...
 
-    acq_values = acq_function(xy_test)
     ax.scatter(dataset.X[:, 0], dataset.X[:, 1], c=dataset.y, cmap="viridis")
     ax.contourf(
         np.linspace(*LIMITS, 100),
