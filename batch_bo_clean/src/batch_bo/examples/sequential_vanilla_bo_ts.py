@@ -4,7 +4,7 @@ from botorch.models import SingleTaskGP
 
 from batch_bo.utils.constants import (
     FIGURES_DIR,
-    DEFAULT_KERNEL,
+    DEFAULT_KERNEL_GPYTORCH,
     N_DIMS,
     SEED,
     TOTAL_BUDGET,
@@ -32,7 +32,7 @@ def run_sequential_vanilla_bo_using_thompson_sampling():
         model = SingleTaskGP(
             dataset.min_max_scaled_X,
             dataset.y,
-            covar_module=DEFAULT_KERNEL,
+            covar_module=DEFAULT_KERNEL_GPYTORCH,
         )
         # model = train_exact_gp_using_gradient_descent(model)
         model = train_model_using_botorch_utils(model)

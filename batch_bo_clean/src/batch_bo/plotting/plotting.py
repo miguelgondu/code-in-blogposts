@@ -3,6 +3,7 @@ import subprocess
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from torch.distributions import Normal
 
 from gpytorch.distributions import MultivariateNormal
 
@@ -18,7 +19,12 @@ from batch_bo.functions.objective_function import (
     compute_objective_function_optima,
 )
 from batch_bo.dataset import Dataset
-from batch_bo.utils.constants import N_DIMS, TOTAL_BUDGET, DEFAULT_KERNEL, LIMITS
+from batch_bo.utils.constants import (
+    N_DIMS,
+    TOTAL_BUDGET,
+    DEFAULT_KERNEL_GPYTORCH,
+    LIMITS,
+)
 from batch_bo.fitting.gp import train_model_using_botorch_utils
 from batch_bo.models import ExactGPModel, ExactGPModelJax, ExactGPScikitLearn
 
@@ -204,27 +210,14 @@ def plot_cummulative_regret(
 
 
 def plot_parity_on_training_data(
-    ax: plt.Axes, dataset: Dataset, posterior: SingleTaskGP
+    ax: plt.Axes,
+    dataset: Dataset,
+    gp: SingleTaskGP | ExactGPModel | ExactGPScikitLearn | ExactGPModelJax,
 ):
     actual_values = dataset.y.numpy(force=True).flatten()
-    if isinstance(posterior, (SingleTaskGP, ExactGPModel, ExactGPScikitLearn)):
-        predictive_dist: MultivariateNormal = posterior.posterior(
-            dataset.min_max_scaled_X
-        )
-        predicted_values = predictive_dist.mean.numpy(force=True)
-        error_bars = predictive_dist.stddev.numpy(force=True)
-    elif isinstance(posterior, (ExactGPModelJax, ConjugatePosterior)):
-        # GPJax models:
-        D = gpx.Dataset(X=dataset.X.numpy(force=True), y=dataset.y.numpy(force=True))
-        latent_dist = posterior(D.X, D)
-        predictive_dist = posterior.likelihood(latent_dist)
-        predicted_values = predictive_dist.mean()
-        error_bars = predictive_dist.stddev()
-    else:
-        raise ValueError("Invalid posterior: ", posterior, type(posterior))
-
-    # predicted_values = posterior.posterior(dataset.X).mean.numpy(force=True).flatten()
-    # error_bars = posterior.posterior(dataset.X).stddev.numpy(force=True)
+    predictive_dist: Normal = gp.posterior(dataset.X)
+    predicted_values = predictive_dist.mean.numpy(force=True)
+    error_bars = predictive_dist.scale.numpy(force=True)
 
     min_ = min(np.concatenate((predicted_values.flatten(), actual_values.flatten())))
     max_ = max(np.concatenate((predicted_values.flatten(), actual_values.flatten())))
@@ -286,7 +279,7 @@ def plot_validation_pair_plot(
     model = SingleTaskGP(
         X_train_,
         y_train_,
-        covar_module=DEFAULT_KERNEL,
+        covar_module=DEFAULT_KERNEL_GPYTORCH,
         input_transform=Normalize(N_DIMS),
     )
 
@@ -385,7 +378,7 @@ def plot_bo_step(posterior: SingleTaskGP, dataset: Dataset, n_iterations: int):
     plot_parity_on_training_data(
         ax=axes["parity_plot"],
         dataset=dataset,
-        posterior=posterior,
+        gp=posterior,
     )
     plot_validation_pair_plot(
         ax=axes["validation_parity_plot"],

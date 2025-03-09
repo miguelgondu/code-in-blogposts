@@ -5,6 +5,7 @@ import gpytorch
 
 import jax.random as jr
 import gpjax as gpx
+from gpjax.gps import ConjugatePosterior
 import optax as ox
 
 from botorch.models import SingleTaskGP
@@ -79,7 +80,7 @@ def train_exact_gp_jax(
     model: ExactGPModelJax,
     max_nr_iterations: int = 500,
     seed: int = 0,
-) -> gpx:
+) -> ConjugatePosterior:
     posterior = model.compute_posterior(model.train_x, model.train_y)
     optimiser = ox.adam(learning_rate=1e-2)
 
@@ -111,15 +112,18 @@ def fit_gp(dataset: gpx.Dataset, key: jr.PRNGKey) -> gpx.gps.ConjugatePosterior:
     posterior = prior * likelihood
 
     # Define an optimiser
-    optimiser = ox.adam(learning_rate=1e-2)
+    optimiser = ox.adam(learning_rate=1e-1)
 
     # Define the marginal log-likelihood
+    def negative_mll(p, d):
+        return -1.0 * gpx.objectives.conjugate_mll(p, d)
+
     opt_posterior, _ = gpx.fit(
         model=posterior,
-        objective=lambda p, d: -1.0 * gpx.objectives.conjugate_mll(p, d),
+        objective=negative_mll,
         train_data=dataset,
         optim=optimiser,
-        num_iters=500,
+        num_iters=5000,
         safe=True,
         key=key,
     )
