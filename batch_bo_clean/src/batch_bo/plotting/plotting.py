@@ -56,7 +56,7 @@ def plot_objective_function(ax: plt.Axes):
         z,
         levels=100,
         cmap="viridis",
-        vmin=1.0,
+        # vmin=1.0,
         vmax=compute_objective_function_optima(),
     )
 

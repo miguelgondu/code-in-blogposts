@@ -3,14 +3,13 @@ import numpy as np
 
 from poli.repository import ToyContinuousBlackBox
 
-from batch_bo.utils.constants import FUNCTION_NAME, N_DIMS, LIMITS
+from batch_bo.utils.constants import FUNCTION_NAME, N_DIMS, LIMITS, RESOLUTION
 
 
 def compute_domain() -> torch.Tensor:
-    n_dims = 2
-    x = np.linspace(*LIMITS, 100)
-    y = np.linspace(*LIMITS, 100)
-    xy = np.array(np.meshgrid(x, y)).T.reshape(-1, n_dims)
+    x = np.linspace(*LIMITS, RESOLUTION)
+    y = np.linspace(*LIMITS, RESOLUTION)
+    xy = np.array(np.meshgrid(x, y)).T.reshape(-1, N_DIMS)
     return torch.from_numpy(xy).to(torch.get_default_dtype())
 
 

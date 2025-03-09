@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from poli.repository import ToyContinuousBlackBox
+import torch
 
 from batch_bo.utils.constants import (
     FIGURES_DIR,
@@ -10,6 +11,8 @@ from batch_bo.utils.constants import (
     LIMITS,
     RESOLUTION,
 )
+from batch_bo.plotting import plot_objective_function
+from batch_bo.functions.objective_function import objective_function
 
 if __name__ == "__main__":
     f = ToyContinuousBlackBox(function_name=FUNCTION_NAME, n_dimensions=N_DIMS)
@@ -17,7 +20,7 @@ if __name__ == "__main__":
     y = np.linspace(*LIMITS, RESOLUTION)
     xy = np.array(np.meshgrid(x, y)).T.reshape(-1, N_DIMS)
 
-    z = f(xy)
+    z = objective_function(torch.from_numpy(xy))
 
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(121, projection="3d")
@@ -37,7 +40,7 @@ if __name__ == "__main__":
     ax.plot_trisurf(xy[:, 0], xy[:, 1], z.flatten(), cmap="viridis")
 
     ax2 = fig.add_subplot(122)
-    ax2.contourf(x, y, z.reshape(RESOLUTION, RESOLUTION), levels=100, cmap="viridis")
+    plot_objective_function(ax2)
     ax2.scatter(
         optimum[0],
         optimum[1],

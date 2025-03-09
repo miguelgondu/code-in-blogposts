@@ -1,12 +1,13 @@
 EXAMPLES_DIR := src/batch_bo/examples
 EXAMPLES := $(wildcard $(EXAMPLES_DIR)/*.py)
 FIGURES_DIR := figures
-FFMPEG_BASE_CMD := ffmpeg -y -vf "fps=2,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -vcodec libx264 -pix_fmt yuv420p
+FFMPEG_BASE_CMD := ffmpeg -y -i figures/perturbations/perturbation_ExactGPModelJax_%02d.jpg -framerate 2 -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" -vcodec libx264 -pix_fmt yuv420p 
 
 all: \
-	install
+	install \
     plot_initial_figure \
 	plot_initial_fit \
+	plot_initial \
 	batch_ts \
 	batch_ts_video \
 	qEI \
@@ -20,6 +21,8 @@ plot_initial_figure: $(EXAMPLES_DIR)/plot_initial_figure.py
 
 plot_initial_fit: $(EXAMPLES_DIR)/plot_initial_fit.py
 	uv run python $^
+
+plot_initial: plot_initial_figure plot_initial_fit
 
 batch_ts: $(EXAMPLES_DIR)/batch_ts.py
 	uv run python $^
@@ -41,6 +44,7 @@ qEI_video:
 	all \
 	plot_initial_figure \
 	plot_initial_fit \
+	plot_initial \
 	batch_ts \
 	batch_ts_video \
 	qEI \

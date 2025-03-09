@@ -6,11 +6,12 @@ import numpy as np
 ROOT_DIR = Path(__file__).parent.parent.parent.parent.resolve()
 FIGURES_DIR = ROOT_DIR / "figures"
 
-FUNCTION_NAME = "cross_in_tray"
+FUNCTION_NAME = "himmelblau"
 N_DIMS = 2
 TOTAL_BUDGET = 50
-LIMITS = (0.0, 1.0)
+LIMITS = (-5.0, 5.0)
 RESOLUTION = 100
+INITIAL_DESIGN_SIZE = 10
 
 # DEFAULT_KERNEL_GPYTORCH = gpytorch.kernels.ScaleKernel(
 #     gpytorch.kernels.MaternKernel(
@@ -20,5 +21,5 @@ RESOLUTION = 100
 #         ),
 #     )
 # )
-DEFAULT_KERNEL_GPYTORCH = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-SEED = 0
+DEFAULT_KERNEL_GPYTORCH = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel())
+SEED = None

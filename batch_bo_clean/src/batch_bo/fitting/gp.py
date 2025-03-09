@@ -89,7 +89,7 @@ def train_exact_gp_jax(
     opt_posterior, history = gpx.fit(
         model=posterior,
         objective=lambda p, d: -1 * gpx.objectives.conjugate_mll(p, d),
-        train_data=model.D,
+        train_data=model.min_max_scaled_D,
         optim=optimiser,
         num_iters=max_nr_iterations,
         safe=True,

@@ -1,3 +1,4 @@
 figures/
+*.mp4
 
 __pycache__/

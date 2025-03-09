@@ -2,9 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from typing import Type
 
-
 import seaborn as sns
-
+import torch
 from poli.repository import ToyContinuousBlackBox
 
 from batch_bo.initial_design.sobol import compute_initial_design_using_sobol
@@ -15,12 +14,13 @@ from batch_bo.utils.constants import (
     N_DIMS,
     SEED,
     FUNCTION_NAME,
+    INITIAL_DESIGN_SIZE,
 )
 from batch_bo.models.gp import ExactGPScikitLearn, ExactGPModelJax, ExactGPModel
 from batch_bo.functions.objective_function import compute_domain
 from batch_bo.plotting import plot_parity_on_training_data
 
-N_POINTS = 10
+torch.set_default_dtype(torch.float64)
 
 
 def fit_gp_to_sobol_samples(
@@ -31,7 +31,7 @@ def fit_gp_to_sobol_samples(
 
     # Sobol sampling
     dataset = compute_initial_design_using_sobol(
-        n_points=N_POINTS, n_dimension=N_DIMS, seed=SEED
+        n_points=INITIAL_DESIGN_SIZE, n_dimension=N_DIMS, seed=SEED
     )
     domain = compute_domain()
     gp = GPClass(train_x=dataset.X, train_y=dataset.y)
@@ -44,8 +44,8 @@ def fit_gp_to_sobol_samples(
         dist_.mean.reshape(RESOLUTION, RESOLUTION).T,
         levels=100,
         cmap="viridis",
-        vmin=1.0,
-        vmax=f.function.optima,
+        # vmin=1.0,
+        # vmax=f.function.optima,
     )
     axes[0].scatter(dataset.X[:, 0], dataset.X[:, 1], c="k", marker="o")
     axes[0].axis("off")
