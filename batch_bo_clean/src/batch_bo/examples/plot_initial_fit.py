@@ -20,7 +20,7 @@ from batch_bo.models.gp import ExactGPScikitLearn, ExactGPModelJax, ExactGPModel
 from batch_bo.functions.objective_function import compute_domain
 from batch_bo.plotting import plot_parity_on_training_data
 
-N_POINTS = 50
+N_POINTS = 10
 
 
 def fit_gp_to_sobol_samples(
@@ -50,7 +50,6 @@ def fit_gp_to_sobol_samples(
     axes[0].scatter(dataset.X[:, 0], dataset.X[:, 1], c="k", marker="o")
     axes[0].axis("off")
     axes[0].set_title("Predictive mean")
-    axes[1].scatter(dataset.X[:, 0], dataset.X[:, 1], c=dataset.y, cmap="viridis")
     axes[1].contourf(
         np.linspace(*LIMITS, RESOLUTION),
         np.linspace(*LIMITS, RESOLUTION),
@@ -64,8 +63,12 @@ def fit_gp_to_sobol_samples(
     plot_parity_on_training_data(axes[2], dataset, gp)
 
     fig.tight_layout()
+    INITIAL_DESIGN_FIGURES_DIR = FIGURES_DIR / "initial_design"
+    INITIAL_DESIGN_FIGURES_DIR.mkdir(exist_ok=True, parents=True)
     fig.savefig(
-        FIGURES_DIR / f"initial_fit_{str(GPClass)}.jpg", dpi=300, bbox_inches="tight"
+        INITIAL_DESIGN_FIGURES_DIR / f"initial_fit_{str(GPClass.__name__)}.jpg",
+        dpi=300,
+        bbox_inches="tight",
     )
 
     plt.show()

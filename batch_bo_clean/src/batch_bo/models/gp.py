@@ -14,10 +14,11 @@ import jax.random as jr
 import gpjax as gpx
 import optax as ox
 from gpjax.gps import ConjugatePosterior
-from botorch.fit import fit_gpytorch_mll
+from botorch.fit import fit_gpytorch_mll, fit_gpytorch_mll_torch
 from botorch.models import SingleTaskGP
 
-from batch_bo.utils.constants import SEED, LIMITS, DEFAULT_KERNEL_GPYTORCH
+from batch_bo.utils.constants import SEED, DEFAULT_KERNEL_GPYTORCH
+from batch_bo.dataset import Dataset
 
 
 class ExactGPScikitLearn:
@@ -40,25 +41,21 @@ class ExactGPModelJax:
     def __init__(self, train_x: torch.Tensor, train_y: torch.Tensor):
         self.train_x = train_x
         self.train_y = train_y
-        self.D = gpx.Dataset(X=train_x.numpy(force=True), y=train_y.numpy(force=True))
+        self.dataset = Dataset(X=train_x, y=train_y)
+        self.D = self.dataset.to_gpx_dataset()
 
         # Construct the prior
         self.meanf = gpx.mean_functions.Zero()
         self.kernel = gpx.kernels.RBF()
         self.prior = gpx.gps.Prior(mean_function=self.meanf, kernel=self.kernel)
 
-    def compute_posterior(self, X: torch.Tensor, y: torch.Tensor):
-        # construct a dataset
-        D = gpx.Dataset(X=X.numpy(force=True), y=y.numpy(force=True))
-
+    def _train(self) -> ConjugatePosterior:
         # Define a likelihood
-        likelihood = gpx.likelihoods.Gaussian(num_datapoints=D.n)
+        likelihood = gpx.likelihoods.Gaussian(num_datapoints=self.D.n)
 
         # Construct the posterior
-        return self.prior * likelihood
+        posterior = self.prior * likelihood
 
-    def _train(self) -> ConjugatePosterior:
-        posterior = self.compute_posterior(self.train_x, self.train_y)
         optimiser = ox.adam(learning_rate=1e-2)
 
         key = jr.key(SEED)
@@ -93,7 +90,7 @@ class ExactGPModel(SingleTaskGP):
         likelihood: gpytorch.likelihoods.GaussianLikelihood = gpytorch.likelihoods.GaussianLikelihood(),
     ):
         super(SingleTaskGP, self).__init__(
-            train_inputs=(train_x - LIMITS[0]) / (LIMITS[1] - LIMITS[0]),
+            train_inputs=train_x,
             train_targets=train_y.flatten(),
             likelihood=likelihood,
         )
@@ -103,16 +100,26 @@ class ExactGPModel(SingleTaskGP):
 
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = DEFAULT_KERNEL_GPYTORCH
+        self.has_been_trained = False
 
     def forward(self, x):
-        min_max_x = (x - LIMITS[0]) / (LIMITS[1] - LIMITS[0])
-        mean_x = self.mean_module(min_max_x)
-        covar_x = self.covar_module(min_max_x)
+        mean_x = self.mean_module(x)
+        covar_x = self.covar_module(x)
         return gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
 
     def _train(self):
-        mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self)
-        mll = fit_gpytorch_mll(mll)
+        if self.has_been_trained:
+            return self
+
+        try:
+            mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self)
+            mll = fit_gpytorch_mll(mll)
+        except Exception as e:
+            print(e)
+            mll = gpytorch.mlls.ExactMarginalLogLikelihood(self.likelihood, self)
+            mll = fit_gpytorch_mll(mll, closure=fit_gpytorch_mll_torch)
+        self.has_been_trained = True
+
         assert not mll.training
 
         self.eval()
@@ -124,8 +131,7 @@ class ExactGPModel(SingleTaskGP):
         assert not self.training
 
         # Predict
-        min_max_x = (x - LIMITS[0]) / (LIMITS[1] - LIMITS[0])
-        mvn = self(min_max_x)
+        mvn = self(x)
         return Normal(loc=mvn.mean.detach(), scale=mvn.variance.sqrt().detach())
 
 

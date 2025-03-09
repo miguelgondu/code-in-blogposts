@@ -228,7 +228,7 @@ def plot_parity_on_training_data(
         yerr=error_bars,
         fmt=".k",
         label="mean predictions vs. actual values",
-        markersize=10,
+        markersize=25,
         markerfacecolor="white",
         markeredgecolor="gray",
         alpha=0.85,
