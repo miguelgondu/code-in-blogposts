@@ -1,5 +1,5 @@
-from synthetic import run_experiment
-from analysis import load_results
+from synthetic_pydantic import run_experiment
+from analysis import load_results_csv, load_results_json
 
 
 if __name__ == "__main__":
@@ -18,6 +18,8 @@ if __name__ == "__main__":
     ]
     run_experiment(proteins=proteins, molecules=molecules, repetitions=10)
 
-    df = load_results()
+    df_from_csvs = load_results_csv()
+    df_from_json = load_results_json()
 
-    print(df)
+    print(df_from_csvs)
+    print(df_from_json)
